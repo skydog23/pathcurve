@@ -145,37 +145,46 @@ function updateCurves() {
         fogfactor: parseFloat($("#fogfactor").val())
     };
     pathcurve.scene.fog = new THREE.Fog( 0x000000, 1.0, 1.0+params.fogfactor*pathcurve.settings.camera.far/3);
-    var curve = parametersToCurve.parametersToCurve(
-        500,
-        new THREE.Vector4(params.iradius, 0, 0, 1),
-        params.speed,
-        params.lambda,
-        params.epsilon
-    );
-    var mat = new THREE.LineBasicMaterial({
-        color: 0xffffff,
-        linewidth: 1,
-        fog: true
-    });
-    var geom = new THREE.Geometry();
-    curve.forEach(function(v4) {
-        geom.vertices.push(new THREE.Vector3(v4.x/v4.w, v4.y/v4.w, v4.z/v4.w));
-    });
-    pathcurve.world.remove(pathcurve.curves);
-    pathcurve.curves = new THREE.Object3D();
-    pathcurve.world.add(pathcurve.curves);
     if (Math.abs(params.tangle - 2* Math.PI) < .01) params.tangle = 2 * Math.PI;
+
+    var i, j, rot = new THREE.Matrix4();
     var dAngle = params.tangle / ( params.ncurves===1 ? 1 : (params.ncurves - 1) );
-    var i;
-    for (i=0; i<params.ncurves; ++i) {
-        var angle = i*dAngle;
-        var rot = new THREE.Matrix4();
-        rot.makeRotationZ(angle);
-        var lineSegmentsObj = new THREE.Line(geom, mat);
-        lineSegmentsObj.matrix = rot;
-        lineSegmentsObj.matrixWorldNeedsUpdate = true;
-        lineSegmentsObj.matrixAutoUpdate = false;
-        pathcurve.curves.add(lineSegmentsObj);
+    pathcurve.world.remove(pathcurve.curveLayers);
+    pathcurve.curveLayers = new THREE.Object3D();
+    pathcurve.world.add(pathcurve.curveLayers);
+    pathcurve.nlayers = 1;
+    for (j=0; j<params.ncurves; ++j) {
+        var curves = new THREE.Object3D();
+        for (i = 0; i < pathcurve.nlayers; ++i)	{
+            var factor = (i+1)/pathcurve.nlayers;
+            var curve = parametersToCurve.parametersToCurve(
+                500,
+                new THREE.Vector4(factor * params.iradius, 0, 0, 1),
+                params.speed,
+                params.lambda,
+                params.epsilon
+            );
+            var mat = new THREE.LineBasicMaterial({
+                color: 0xffffff,
+                linewidth: 1,
+                fog: true
+            });
+            var geom = new THREE.Geometry();
+            curve.forEach(function(v4) {
+                geom.vertices.push(new THREE.Vector3(v4.x/v4.w, v4.y/v4.w, v4.z/v4.w));
+            });
+	    var lineSegmentsObj = new THREE.Line(geom, mat);
+	    curves.add(lineSegmentsObj);
+        }
+        var angle = j*dAngle;
+        var poobah  = new THREE.Object3D();
+	poobah.add(curves);
+        poobah.rotateZ(angle);
+        poobah.matrixWorldNeedsUpdate = true;
+        //poobah.matrixAutoUpdate = false;
+	//poobah.updateMatrixWorld();
+        pathcurve.curveLayers.add(poobah);
+	console.log(i);
     }
 }
 
@@ -220,8 +229,8 @@ pathcurve.launch = function(canvas, width, height) {
     });
     pathcurve.world.add(pathcurve.axes);
 
-    pathcurve.curves = new THREE.Object3D();
-    pathcurve.world.add(pathcurve.curves);
+    pathcurve.curveLayers = new THREE.Object3D();
+    pathcurve.world.add(pathcurve.curveLayers);
 
     var scene = new THREE.Scene();
     pathcurve.scene = scene
