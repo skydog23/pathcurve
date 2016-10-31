@@ -101,7 +101,7 @@
 
 
 	// module
-	exports.push([module.id, "body, html, canvas {\n  padding: 0;\n  margin: 0;\n  width: 100%;\n  height: 100%;\n}\n\nbody {\n  font-family: sans-serif;\n}\n\n#controls-toggle {\n  position: absolute;\n  top: 10px;\n  left: 10px;\n  height: 20px;\n  width: 20px;\n  color: #ccc;\n}\n\n#controls {\n  width: 400px;\n  height: 240px;\n  position: absolute;\n  top: 30px;\n  left: 10px;\n  background-color: #ffffff;\n  border-radius: 10px;\n  padding-top: 5px;\n  opacity: 0.75;\n}\n\ninput {\n  margin-right: 5px;\n}\n\ninput + input {\n  margin-left: 10px;\n}\n\n.inputrow {\n  margin-bottom: 5px;\n  margin-left: 5px;\n}\n\n#title {\n  text-align: center;\n  font-size: 14pt;\n  font-weight: bold;\n  font-style: italic;\n  margin-bottom: 5px;\n}\n\ndiv.slider-track {\n  background: #aaaaaa;\n}\ndiv.slider-selection {\n  background: #aaaaaa;\n}\n\n.slider-handle {\n  border-bottom-color: #000000 !important;\n  background: #000000;\n}\n", ""]);
+	exports.push([module.id, "body, html, canvas {\n  padding: 0;\n  margin: 0;\n  width: 100%;\n  height: 100%;\n}\n\nbody {\n  font-family: sans-serif;\n}\n\n#controls-toggle {\n  position: absolute;\n  top: 10px;\n  left: 15px;\n  height: 20px;\n  width: 20px;\n  z-index: 100;\n}\n#controls-toggle .fa-times-circle {\n  color: darkred;\n}\n\n#controls-toggle .fa-cog {\n  color: #ccc;\n}\n\n#controls {\n  width: 400px;\n  height: 280px;\n  position: absolute;\n  top: 10px;\n  left: 10px;\n  background-color: #ffffff;\n  border-radius: 10px;\n  padding-top: 5px;\n  opacity: 0.75;\n}\n\ninput {\n  margin-right: 5px;\n}\n\ninput + input {\n  margin-left: 10px;\n}\n\n.inputrow {\n  margin-bottom: 5px;\n  margin-left: 5px;\n}\n\n#title {\n  text-align: center;\n  font-size: 14pt;\n  font-weight: bold;\n  font-style: italic;\n  margin-bottom: 5px;\n}\n\ndiv.slider-track {\n  background: #aaaaaa;\n}\ndiv.slider-selection {\n  background: #aaaaaa;\n}\n\n.slider-handle {\n  border-bottom-color: #000000 !important;\n  background: #000000;\n}\n", ""]);
 
 	// exports
 
@@ -42731,6 +42731,16 @@
 	    maxValue: 6.283,
 	    step: controlsInputsDefaults.step,
 	    tooltiptext: "Size of sector around z-axis to display curves",
+	}, {
+	    size: controlsInputsDefaults.size,
+	    maxLength: controlsInputsDefaults.maxLength,
+	    text: "fog factor",
+	    name: "fogfactor",
+	    value: .8,
+	    minValue: 0.5,
+	    maxValue: 2.0,
+	    step: 0.01,
+	    tooltiptext: "Control amount of fog"
 	}];
 
 	function createCamera(width, height) {
@@ -42756,15 +42766,16 @@
 	}
 
 	function updateCurves() {
-	    var params = {
-	        // dT: parseFloat($("#dT").val()),
+	    var params = { 
 	        lambda: parseFloat($("#lambda").val()),
 	        epsilon: parseFloat($("#epsilon").val()),
 	        speed: parseFloat($("#speed").val()),
 	        iradius: parseFloat($("#iradius").val()),
 	        ncurves: parseFloat($("#ncurves").val()),
-	        tangle: parseFloat($("#tangle").val())
+	        tangle: parseFloat($("#tangle").val()),
+	        fogfactor: parseFloat($("#fogfactor").val())
 	    };
+	    pathcurve.scene.fog = new THREE.Fog( 0x000000, 1.0, 1.0+params.fogfactor*pathcurve.settings.camera.far/3);
 	    var curve = parametersToCurve.parametersToCurve(
 	        500,
 	        new THREE.Vector4(params.iradius, 0, 0, 1),
@@ -42784,6 +42795,7 @@
 	    pathcurve.world.remove(pathcurve.curves);
 	    pathcurve.curves = new THREE.Object3D();
 	    pathcurve.world.add(pathcurve.curves);
+	    if (Math.abs(params.tangle - 2* Math.PI) < .01) params.tangle = 2 * Math.PI;
 	    var dAngle = params.tangle / ( params.ncurves===1 ? 1 : (params.ncurves - 1) );
 	    var i;
 	    for (i=0; i<params.ncurves; ++i) {
@@ -42802,17 +42814,18 @@
 	    controlsInputs.forEach(function(inputs) {
 	        ui.add_slider_widget($container, inputs);
 	    });
-	    addControlsToggle($container, $('#controls-toggle'));
+	    $('[data-toggle="tooltip"]').tooltip();
+	    addControlsToggle($container);
 	}
 
-	function addControlsToggle($panel, $toggle) {
+	function addControlsToggle($panel) {
 	    var whenOpen = 'fa-times-circle';
 	    var whenClosed = 'fa-cog';
-
+	    $toggleIcon = $('#controls-toggle').find('i');
 	    $panel.on('hide.bs.collapse', function() {
-	      $toggle.find('i').removeClass(whenOpen).addClass(whenClosed);
+	      $toggleIcon.removeClass(whenOpen).addClass(whenClosed);
 	    }).on('show.bs.collapse', function () {
-	      $toggle.find('i').removeClass(whenClosed).addClass(whenOpen);
+	      $toggleIcon.removeClass(whenClosed).addClass(whenOpen);
 	    });
 	    $('[data-toggle="tooltip"]').tooltip();
 	}
@@ -42842,11 +42855,11 @@
 	    pathcurve.world.add(pathcurve.curves);
 
 	    var scene = new THREE.Scene();
+	    pathcurve.scene = scene
 	    scene.add( camera );
 	    scene.add( pathcurve.world );
 	    scene.add( new THREE.AmbientLight( 0x222222 ) );
-	    //scene.fog = new THREE.FogExp2( 0xefd1b5, 0.0025 );
-	    scene.fog = new THREE.Fog( 0x000000, 1.0, pathcurve.settings.camera.far/3);
+	    scene.fog = new THREE.Fog( 0x000000, 1.0, 1.0+pathcurve.settings.camera.far/3);
 	    pathcurve.settings.lights.directional.forEach(function(lt) {
 	        var light = new THREE.DirectionalLight( lt.color, lt.intensity );
 	        light.position.set(lt.position[0], lt.position[1], lt.position[2]);
