@@ -1,0 +1,21 @@
+{
+  "name": "pathcurve",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "webpack-dev-server --progress --colors --inline",
+    "local": "webpack-dev-server --host 192.168.1.6 --progress --colors --inline",
+    "build": "webpack"
+ },
+  "author": "",
+  "dependencies": {
+    "css-loader": "^0.23.1",
+    "sprintf": "^0.1.5",
+    "style-loader": "^0.13.0"
+  },
+  "devDependencies": {
+    "webpack": "^1.12.14"
+  }
+}
